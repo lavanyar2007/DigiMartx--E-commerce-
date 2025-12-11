@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1765473970393,
+    "items": [
+      {
+        "id": 1,
+        "name": "product-4",
+        "price": 234545,
+        "quantity": 2,
+        "total": 469090
+      },
+      {
+        "id": 2,
+        "name": "Smart Watch",
+        "price": 4999,
+        "quantity": 1,
+        "total": 4999
+      }
+    ],
+    "totalAmount": 474089,
+    "date": "2025-12-11T17:26:10.360Z"
+  }
+]
