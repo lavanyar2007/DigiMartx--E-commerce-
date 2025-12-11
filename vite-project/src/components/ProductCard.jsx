@@ -2,8 +2,8 @@ import { Link } from "react-router";
 
 const ProductCard = ({ product, addToCart }) => {
   return (
-    <div className="bg-white shadow-lg rounded-xl p-4 w-[220px] hover:scale-105 transform transition">
-      <img src={product.image} className="h-40 w-40 object-cover rounded-lg mb-3" />
+    <div className="bg-white shadow-lg rounded-xl p-4 w-[300px] hover:scale-105 transform transition">
+      <img src={product.image} className="h-70 w-70 object-cover rounded-lg mb-3" />
       <h2 className="font-bold text-indigo-900">{product.name}</h2>
       <p className="text-gray-700">₹{product.price}</p>
       <div className="flex justify-between  mt-3 py-2">

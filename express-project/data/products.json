@@ -8,30 +8,44 @@
   },
   {
     "id": 2,
-    "name": "Smart Watch",
+    "name": "Apple Watch",
     "price": 4999,
     "image": "/image2.jpg",
     "description": "Heart rate monitor & fitness tracking"
   },
   {
     "id": 4,
-    "name": "apple Watch",
+    "name": "laptop backpack",
     "price": 4999,
-    "image": "/image4jpg",
+    "image": "/image4.jpg",
     "description": "Heart rate monitor & fitness tracking"
   },
   {
     "id": 5,
-    "name": "Dell XPS 13 Laptop",
+    "name": "Speaker",
     "price": 1200,
-    "image": "image5.jpg",
+    "image": "/image5.jpg",
     "description": "Compact and powerful ultrabook."
   },
   {
     "id": 6,
-    "name": "product-4",
+    "name": "Smart Watch",
     "price": 234545,
-    "image": "image8.jpg",
-    "description": "wert r4tg5hy6u"
+    "image": "/image8.jpg",
+    "description": "Heart rate monitor & fitness tracking"
+  },
+  {
+    "id": 7,
+    "name": "Gaming Mouse",
+    "price": 4500,
+    "image": "image3.jpg",
+    "description": "smooth and responsive gaming mouse"
+  },
+  {
+    "id": 8,
+    "name": "Keyboard",
+    "price": 3499,
+    "image": "image7.jpg",
+    "description": "High-quality mechanical keyboard"
   }
 ]

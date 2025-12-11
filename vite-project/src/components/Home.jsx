@@ -23,7 +23,7 @@ const Home = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {products.map((p) => (
             <div key={p.id} className="bg-white shadow-lg rounded-xl p-4 text-center hover:scale-105 transform transition">
-              <img src={p.image} alt={p.name} className="h-80 w-full object-cover rounded-lg mb-4" />
+              <img src={p.image} alt={p.name} className="h-80 w-80 overflow-hidden object-cover rounded-lg mb-4" />
               <h3 className="text-lg font-semibold">{p.name}</h3>
               <p className="text-gray-700 font-medium">₹{p.price}</p>
               <Link to="/product" className="mt-4 inline-block bg-indigo-900 text-white px-4 py-2 rounded-lg hover:bg-indigo-800 transition">View More</Link>
