@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Smart Watch",
+    "price": 4999,
+    "image": "/image2.jpg",
+    "description": "Heart rate monitor & fitness tracking",
+    "quantity": 2
+  },
+  {
+    "id": 2,
+    "name": "Wireless Earbuds",
+    "price": 1999,
+    "image": "/image1.jpg",
+    "description": "High-quality Bluetooth earbuds",
+    "quantity": 1
+  },
+  {
+    "id": 3,
+    "name": "apple Watch",
+    "price": 4999,
+    "image": "/image4jpg",
+    "description": "Heart rate monitor & fitness tracking",
+    "quantity": 1
+  },
+  {
+    "id": 4,
+    "name": "Dell XPS 13 Laptop",
+    "price": 1200,
+    "image": "image5.jpg",
+    "description": "Compact and powerful ultrabook.",
+    "quantity": 1
+  }
+]
