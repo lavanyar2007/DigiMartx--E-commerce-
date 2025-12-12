@@ -1,41 +1,49 @@
 const express = require("express");
-const fs = require("fs");
+const Order=require("../models/Order")
+const Cart=require("../models/Cart")
 const router = express.Router();
 
-const ordersPath = "data/orders.json";
 
-// Helper functions
-const readOrders = () => {
-  try {
-    return JSON.parse(fs.readFileSync(ordersPath, "utf-8") || "[]");
-  } catch {
-    return [];
-  }
-};
-const writeOrders = (orders) => fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
 
 // GET all orders
-router.get("/", (req, res) => {
-  const orders = readOrders();
-  res.json(orders);
+router.get("/", async(req, res) => {
+  try{
+    const orders = await Order.find();
+    res.status(200).json(orders);
+  }
+  catch(err){
+    res.status(500).json({message: err.message});
+  }
+
+  
 });
 
 // POST a new order
-router.post("/", (req, res) => {
-  const orders = readOrders();
 
-  const newOrder = {
-    id: Date.now(),      // unique ID
-    ...req.body          // items, totalAmount, date
-  };
+router.post("/", async (req, res) => {
+  try {
+    const { items, totalAmount, date } = req.body;
 
-  orders.push(newOrder);
-  writeOrders(orders);
+    // Find the current max numeric id
+    const lastOrder = await Order.findOne().sort({ id: -1 });
+    const maxId = lastOrder ? lastOrder.id : 0;
 
-  // Clear cart after order
-  fs.writeFileSync("data/carts.json", JSON.stringify([], null, 2));
+    // Create new order
+    const newOrder = await Order.create({
+      id: maxId + 1,       // numeric id
+      items,
+      totalAmount,
+      date: date || Date.now()
+    });
 
-  res.json(newOrder);   // return object
+    // Clear cart after order
+    await Cart.deleteMany({});
+
+    res.status(201).json(newOrder);
+
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

@@ -10,7 +10,7 @@ const Navbar = () => {
         <Link to="/cart" className="bg-indigo-200 px-5 py-1 rounded-full text-indigo-900 hover:text-indigo-800 hover:bg-indigo-300 transition">Cart</Link>
         <Link to="/order" className="bg-indigo-200 px-5 py-1 rounded-full text-indigo-900 hover:text-indigo-800 hover:bg-indigo-300 transition">Order</Link>
         <Link to="/about" className="bg-indigo-200 px-5 py-1 rounded-full text-indigo-900 hover:text-indigo-800 hover:bg-indigo-300 transition">About</Link>
-        <Link to="/login" className="bg-indigo-200 px-5 py-1 rounded-full text-indigo-900 hover:text-indigo-800 hover:bg-indigo-300 transition">Admin</Link>
+        <Link to="/admin" className="bg-indigo-200 px-5 py-1 rounded-full text-indigo-900 hover:text-indigo-800 hover:bg-indigo-300 transition">Admin</Link>
       </div>
       <div className="flex gap-4">
         <Link to="/login" className="bg-indigo-600 px-5 py-2 rounded-lg hover:bg-indigo-700 text-white transition">Login</Link>

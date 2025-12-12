@@ -6,6 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const createDb=require("./config/db")
+
+createDb();
+
 const ProductsRouter=require("./routes/products");
 const CartsRouter=require("./routes/carts");
 const OrdersRouter=require("./routes/orders");

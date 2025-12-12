@@ -1,87 +1,111 @@
 const express = require("express");
-const fs = require("fs");
+const Cart=require("../models/Cart")
 const router = express.Router();
 
-// Helper function to read carts.json
-const readCarts = () => JSON.parse(fs.readFileSync("data/carts.json", "utf-8"));
-// Helper function to write carts.json
-const writeCarts = (carts) => fs.writeFileSync("data/carts.json", JSON.stringify(carts, null, 2));
 
 // GET all cart items
-router.get("/", (req, res) => {
-    const carts = readCarts();
-    res.json(carts);
+router.get("/", async (req, res) => {
+     try{
+        const carts = await Cart.find();
+        res.status(200).json(carts);
+     }
+     catch(err){
+        res.status(404).json({error: err.message});
+     }
 });
 
 // GET single cart item by ID
-router.get("/:id", (req, res) => {
-    const carts = readCarts();
-    const cart = carts.find(c => c.id === parseInt(req.params.id, 10));
-    if (cart) {
-        res.json(cart);
-    } else {
+router.get("/:id", async (req, res) => {
+   try {
+        const cart = await Cart.find({id:req.params.id});
+        res.status(200).json(cart);
+    } catch(err) {
         res.status(404).json({ message: "Cart item not found" });
     }
 });
 
 // DELETE cart item by ID
-router.delete("/:id", (req, res) => {
-    const carts = readCarts();
-    const updatedCarts = carts.filter(c => c.id !== parseInt(req.params.id, 10));
-    if (updatedCarts.length === carts.length) {
-        return res.status(404).json({ message: "Cart item not found" });
-    }
-    writeCarts(updatedCarts);
-    res.status(200).json({ message: "Cart item deleted" });
+router.delete("/:id",async (req, res) => {
+     try{
+        const id=req.params.id;
+        const result = await Cart.deleteOne({ id: id });
+        if (result.deletedCount === 0) {
+            res.status(404).json({ message: "Cart item not found" });
+        }
+        else{
+            res.status(200).json({ message: "Cart item deleted" });
+        }
+     }
+     catch(err){
+         res.status(404).json({error: err.message});
+     }
 });
 
-// POST / add new cart item or increase quantity if exists
-router.post("/", (req, res) => {
-    const carts = readCarts();
+// Add new cart item or increase quantity if exists
+router.post("/", async (req, res) => {
+  try {
+    const { name, price, image, description, quantity } = req.body;
 
     // Validation
-    if (!req.body.name || !req.body.price) {
-        return res.status(400).json({ message: "Name and price are required" });
+    if (!name || !price) {
+      return res.status(400).json({ message: "Name and price are required" });
     }
 
-    // Check if item already exists (by name)
-    const existingCart = carts.find(c => c.name === req.body.name);
+    // Check if the item already exists
+    const existingCart = await Cart.findOne({ name });
     if (existingCart) {
-        existingCart.quantity += req.body.quantity || 1;
-        writeCarts(carts);
-        return res.status(200).json({ message: "Cart item quantity updated", cart: existingCart });
+      existingCart.quantity += quantity || 1;
+      await existingCart.save();  // update existing item
+      return res.status(200).json({ message: "Cart item quantity updated", cart: existingCart });
     }
 
-    // Add new cart item
-    const maxId = Math.max(...carts.map(c => c.id), 0);
-    const newCart = {
-        id: maxId + 1,
-        name: req.body.name,
-        price: req.body.price,
-        image: req.body.image || "",
-        description: req.body.description || "",
-        quantity: req.body.quantity || 1
-    };
-    const updatedCarts = [...carts, newCart];
-    writeCarts(updatedCarts);
+    // Get max numeric id for new cart item
+    const lastCart = await Cart.findOne().sort({ id: -1 });
+    const maxId = lastCart ? lastCart.id : 0;
+
+    // Create new cart item using create()
+    const newCart = await Cart.create({
+      id: maxId + 1,
+      name,
+      price,
+      image: image || "",
+      description: description || "",
+      quantity: quantity || 1
+    });
+
     res.status(201).json({ message: "Cart item added successfully", newCart });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PUT / update cart item (e.g., quantity)
-router.put("/:id", (req, res) => {
-    const carts = readCarts();
-    const index = carts.findIndex(c => c.id === parseInt(req.params.id, 10));
-    if (index === -1) return res.status(404).json({ message: "Cart item not found" });
 
-    // Update quantity or other fields if provided
-    carts[index].quantity = req.body.quantity || carts[index].quantity;
-    carts[index].name = req.body.name || carts[index].name;
-    carts[index].price = req.body.price || carts[index].price;
-    carts[index].image = req.body.image || carts[index].image;
-    carts[index].description = req.body.description || carts[index].description;
+// Update cart item by numeric id
+router.put("/:id", async (req, res) => {
+  try {
+    const cartId = parseInt(req.params.id, 10);
 
-    writeCarts(carts);
-    res.json({ message: "Cart item updated successfully", cart: carts[index] });
+    // Find the cart item by numeric id
+    const cartItem = await Cart.findOne({ id: cartId });
+    if (!cartItem) {
+      return res.status(404).json({ message: "Cart item not found" });
+    }
+
+    // Update fields if provided
+    cartItem.quantity = req.body.quantity ?? cartItem.quantity;
+    cartItem.name = req.body.name ?? cartItem.name;
+    cartItem.price = req.body.price ?? cartItem.price;
+    cartItem.image = req.body.image ?? cartItem.image;
+    cartItem.description = req.body.description ?? cartItem.description;
+
+    await cartItem.save(); // save changes
+
+    res.json({ message: "Cart item updated successfully", cart: cartItem });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

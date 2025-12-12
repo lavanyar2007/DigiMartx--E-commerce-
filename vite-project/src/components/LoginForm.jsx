@@ -11,7 +11,7 @@ const LoginForm = () => {
     if (username === "admin" && password === "admin123") {
       sessionStorage.setItem("isLoggedIn", "true");
       sessionStorage.setItem("role", "admin");
-      navigate("/admin");
+      navigate("/home");
     } else if (username === "user" && password === "user123") {
       sessionStorage.setItem("isLoggedIn", "true");
       sessionStorage.setItem("role", "user");

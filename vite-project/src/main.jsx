@@ -12,6 +12,8 @@ import Admin from "./components/Admin.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import About from "./components/About.jsx"
 import { useState ,useEffect} from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Main = () => {
   // Global state
@@ -86,6 +88,8 @@ const removeFromCart = async (id) => {
   }, []);
 
   return (
+    <>
+    <ToastContainer/>
     <BrowserRouter>
       <Routes>
         <Route element={<HomeLayout />}>
@@ -120,6 +124,7 @@ const removeFromCart = async (id) => {
         />
       </Routes>
     </BrowserRouter>
+    </>
   );
 };
 
