@@ -1,87 +1,22 @@
 const express = require("express");
-const Product=require("../models/Product")
 const router = express.Router();
 
+const {
+  getProducts,
+  getProductsById,
+  postProducts,
+  deleteProducts
+} = require("../controllers/productsController");
 
+const authMiddleware = require("../middlewares/authMiddleware");
+const adminMiddleware = require("../middlewares/adminMiddleware");
 
-//to get all products
-// Get all products
-router.get("/", async (req, res) => {
-  try {
-    const products = await Product.find();
-    if (products.length > 0) {
-      res.status(200).json(products);
-    } else {
-      res.status(404).json({ error: "No products found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// PUBLIC
+router.get("/", getProducts);
+router.get("/:id", getProductsById);
 
+// 🔐 ADMIN ONLY
+router.post("/", authMiddleware, adminMiddleware, postProducts);
+router.delete("/:id", authMiddleware, adminMiddleware, deleteProducts);
 
-//to get a single product
-// Get a single product by id
-router.get("/:id", async (req, res) => {
-  try {
-    const productId = parseInt(req.params.id); // convert string to number
-    const product = await Product.findOne({ id: productId });
-
-    if (product) {
-      res.status(200).json(product);
-    } else {
-      res.status(404).json({ message: "Product not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-//to delete a product
-router.delete("/:id", async (req, res) => {
-  try {
-    const productId = parseInt(req.params.id);
-
-    const result = await Product.deleteOne({ id: productId });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    res.json({ message: "Product deleted successfully" });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//to add or update a product
-
-router.post("/", async (req, res) => {
-  try {
-    const { name, price, image, description } = req.body;
-
-    // Find the product with the highest numeric id
-    const lastProduct = await Product.findOne().sort({ id: -1 });
-    const maxId = lastProduct ? lastProduct.id : 0;
-
-    // Create new product with incremented id
-    const product = await Product.create({
-      id: maxId + 1,
-      name,
-      price,
-      image,
-      description
-    });
-
-    res.status(201).json({ message: "Product created successfully", product });
-
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-
-
-module.exports=router;
+module.exports = router;

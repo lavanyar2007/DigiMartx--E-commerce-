@@ -1,18 +1,12 @@
-// ProtectedRoute.jsx
 import { Navigate } from "react-router";
 
 const ProtectedRoute = ({ children, role }) => {
-  const isLoggedIn = sessionStorage.getItem("isLoggedIn");
+  const token = sessionStorage.getItem("token");
   const userRole = sessionStorage.getItem("role");
 
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!token) return <Navigate to="/login" />;
 
-  if (role && role !== userRole) {
-    // Only allow if user role matches
-    return <Navigate to="/" replace />;
-  }
+  if (role && role !== userRole) return <Navigate to="/" />;
 
   return children;
 };

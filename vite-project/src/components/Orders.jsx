@@ -1,24 +1,25 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import axios from "axios";
 
 const Orders = ({ orders, setOrders }) => {
   const navigate = useNavigate();
+  const token = sessionStorage.getItem("token");
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch("http://localhost:3000/orders");
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(data);
-        }
+        const res = await axios.get("http://localhost:3000/orders", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOrders(res.data.orders || []);
       } catch (err) {
         console.error("Error fetching orders:", err);
       }
     };
 
     fetchOrders();
-  }, [setOrders]);
+  }, [setOrders, token]);
 
   return (
     <div className="max-w-4xl mx-auto p-6 mt-10">
@@ -26,7 +27,7 @@ const Orders = ({ orders, setOrders }) => {
         Your Previous Orders
       </h1>
 
-      {orders.length === 0 ? (
+      {!Array.isArray(orders) || orders.length === 0 ? (
         <div className="border-2 border-indigo-200 rounded-2xl p-8 bg-indigo-50 shadow-md text-center text-indigo-800 font-semibold text-lg">
           No orders yet.
         </div>
@@ -67,7 +68,6 @@ const Orders = ({ orders, setOrders }) => {
                         ₹{item.total}
                       </p>
                     </div>
-                    {/* Pass the full product data through state */}
                     <button
                       onClick={() =>
                         navigate(`/products/${item.id}`, { state: item })

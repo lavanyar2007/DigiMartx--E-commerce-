@@ -1,34 +1,41 @@
+require("dotenv").config();
 const express = require("express");
-const fs=require("fs");
-const cors=require("cors");
-
+const cors = require("cors");
 const app = express();
+
+const authMiddleware = require("./middlewares/authMiddleware");
+
+const createDb = require("./config/db");
+createDb();
+
+// middlewares
 app.use(cors());
 app.use(express.json());
 
-const createDb=require("./config/db")
+// routes
+const ProductsRouter = require("./routes/products");
+const CartsRouter = require("./routes/carts");
+const OrdersRouter = require("./routes/orders");
+const authRouter = require("./routes/auth");
 
-createDb();
+// PUBLIC
+app.use("/products", ProductsRouter);
+app.use("/auth", authRouter);
 
-const ProductsRouter=require("./routes/products");
-const CartsRouter=require("./routes/carts");
-const OrdersRouter=require("./routes/orders");
+// 🔐 LOGIN REQUIRED
+app.use("/carts", authMiddleware, CartsRouter);
+app.use("/orders", authMiddleware, OrdersRouter);
 
-app.use((req,res,next)=>{
-    console.log(`${req.method} ${req.url}`)
-    next();
-})
+// logger
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
-app.get("/",(req,res)=>{
-    res.json({message:"Hello Express"})
-})
+app.get("/", (req, res) => {
+  res.json({ message: "Hello Express" });
+});
 
-app.use("/products",ProductsRouter);
-app.use("/carts",CartsRouter);
-app.use("/orders",OrdersRouter);
-
-app.listen(3000,()=>{
-    console.log('Server running at http://localhost:3000');
-
-})
-
+app.listen(process.env.PORT, () => {
+  console.log(`Server running at http://localhost:${process.env.PORT}`);
+});

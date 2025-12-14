@@ -8,6 +8,8 @@ const ProductForm = ({ products, setProducts }) => {
   const [productImage, setProductImage] = useState("");
   const [productDescription, setProductDescription] = useState("");
 
+  const token = sessionStorage.getItem("token"); // JWT token
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -17,17 +19,21 @@ const ProductForm = ({ products, setProducts }) => {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/products", {
-        name: productName,
-        price: parseFloat(productPrice),
-        image: productImage || "",
-        description: productDescription || "",
-      });
+      const res = await axios.post(
+        "http://localhost:3000/products",
+        {
+          name: productName,
+          price: parseFloat(productPrice),
+          image: productImage || "",
+          description: productDescription || "",
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const newProduct = res.data;
+      const newProduct = res.data.product; // use returned product object
       setProducts([...products, newProduct]);
 
-      toast.success("Product added successfully!");
+      toast.success("Product added successfully!", { autoClose: 500 });
 
       // Clear form
       setProductName("");
@@ -36,7 +42,7 @@ const ProductForm = ({ products, setProducts }) => {
       setProductDescription("");
     } catch (err) {
       console.error("Error adding product:", err);
-      toast.error("Failed to add product");
+      toast.error("Failed to add product", { autoClose: 500 });
     }
   };
 
@@ -86,7 +92,7 @@ const ProductForm = ({ products, setProducts }) => {
         <button
           type="submit"
           className="w-full bg-indigo-900 text-white py-2 rounded-md hover:bg-indigo-800 transition"
-          disabled={!productName || !productPrice} // optional: disable if required fields empty
+          disabled={!productName || !productPrice} 
         >
           Add Product
         </button>
