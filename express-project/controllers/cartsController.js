@@ -1,128 +1,164 @@
-const Cart = require("../models/Cart");
+const Cart = require("../models/carts");
 
-// ✅ GET all cart items (ONLY logged-in user)
+
 const getCarts = async (req, res) => {
   try {
-    const carts = await Cart.find({ userId: req.userData.id });
+    const cart = await Cart.findOne({ user: req.userData.id })
+      .populate("products.product");
+
+    if (!cart) {
+      return res.status(200).json({
+        message: "Cart is empty",
+        cart: null,
+        totalPrice: 0
+      });
+    }
+
+    // Calculate total price inline
+    const totalPrice = cart.products.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
+
     res.status(200).json({
       message: "Cart items fetched successfully",
-      carts: carts
+      cart,
+      totalPrice
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch cart items", error: err.message });
   }
 };
 
-// ✅ GET single cart item by ID (user-safe)
-const getCartById = async (req, res) => {
-  try {
-    const cart = await Cart.findOne({
-      id: Number(req.params.id),
-      userId: req.userData.id
-    });
 
-    if (!cart) {
-      return res.status(404).json({ message: "Cart item not found" });
-    }
-
-    res.status(200).json({
-      message: "Cart item fetched successfully",
-      cart: cart
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch cart item", error: err.message });
-  }
-};
-
-// ✅ ADD item OR increase quantity (user-safe)
 const addToCart = async (req, res) => {
   try {
-    const { name, price, image, description } = req.body;
     const userId = req.userData.id;
+    const { productId, quantity = 1 } = req.body;
 
-    if (!name || !price) {
-      return res.status(400).json({ message: "Name and price are required" });
-    }
+    let cart = await Cart.findOne({ user: userId });
 
-    const existingCart = await Cart.findOne({ name, userId });
-
-    if (existingCart) {
-      existingCart.quantity += 1;
-      await existingCart.save();
-      return res.status(200).json({
-        message: "Cart item quantity updated successfully",
-        cart: existingCart
+    if (!cart) {
+      // create new cart
+      cart = new Cart({
+        user: userId,
+        products: [{ product: productId, quantity }]
       });
+    } else {
+      // check product already exists
+      const index = cart.products.findIndex(
+        p => p.product.toString() === productId
+      );
+
+      if (index > -1) {
+        cart.products[index].quantity += quantity;
+      } else {
+        cart.products.push({ product: productId, quantity });
+      }
     }
+    await cart.save();
+    const populatedCart = await cart.populate("products.product");
 
-    const lastCart = await Cart.findOne({ userId }).sort({ id: -1 });
-    const nextId = lastCart ? lastCart.id + 1 : 1;
-
-    const newCart = await Cart.create({
-      id: nextId,
-      userId,
-      name,
-      price,
-      image: image || "",
-      description: description || "",
-      quantity: 1
-    });
-
-    res.status(201).json({
-      message: "Cart item added successfully",
-      cart: newCart
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to add cart item", error: err.message });
-  }
-};
-
-// ✅ UPDATE cart item
-const updateCart = async (req, res) => {
-  try {
-    const cartItem = await Cart.findOne({
-      id: Number(req.params.id),
-      userId: req.userData.id
-    });
-
-    if (!cartItem) {
-      return res.status(404).json({ message: "Cart item not found" });
-    }
-
-    cartItem.quantity = req.body.quantity ?? cartItem.quantity;
-    await cartItem.save();
+    // Calculate total price inline
+    const totalPrice = populatedCart.products.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
 
     res.status(200).json({
-      message: "Cart item updated successfully",
-      cart: cartItem
+      message: "Product added to cart",
+      cart: populatedCart,
+      totalPrice
     });
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to update cart item", error: err.message });
+    res.status(500).json({
+      message: "Failed to add to cart",
+      error: err.message
+    });
   }
 };
 
-// ✅ DELETE cart item
-const deleteCart = async (req, res) => {
-  try {
-    const result = await Cart.deleteOne({
-      id: Number(req.params.id),
-      userId: req.userData.id
-    });
 
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ message: "Cart item not found" });
+
+const updateCart = async (req, res) => {
+  try {
+    const { productId, quantity } = req.body; // send productId & new quantity
+    const cart = await Cart.findOne({ user: req.userData.id });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
     }
 
-    res.status(200).json({ message: "Cart item deleted successfully" });
+    const index = cart.products.findIndex(p => p.product.toString() === productId);
+    if (index === -1) {
+      return res.status(404).json({ message: "Product not found in cart" });
+    }
+
+    cart.products[index].quantity = quantity; // update quantity
+    await cart.save();
+
+    const populatedCart = await cart.populate("products.product");
+
+    const totalPrice = populatedCart.products.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
+
+    res.status(200).json({
+      message: "Cart updated successfully",
+      cart: populatedCart,
+      totalPrice
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to delete cart item", error: err.message });
+    res.status(500).json({ message: "Failed to update cart", error: err.message });
   }
 };
+
+
+
+const deleteCart = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const cart = await Cart.findOne({ user: req.userData.id });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    cart.products = cart.products.filter(
+      p => p.product.toString() !== productId
+    );
+
+    await cart.save();
+
+    const populatedCart = await cart.populate("products.product");
+
+    // Calculate total 
+    const totalPrice = populatedCart.products.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
+
+    res.status(200).json({
+      message: "Product removed from cart",
+      cart: populatedCart,
+      totalPrice
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to delete cart item",
+      error: err.message
+    });
+  }
+};
+
 
 module.exports = {
   getCarts,
-  getCartById,
+  updateCart, 
   addToCart,
-  updateCart,
   deleteCart
 };

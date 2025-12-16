@@ -24,11 +24,11 @@ const LoginForm = () => {
       sessionStorage.setItem("role", role);
       sessionStorage.setItem("isLoggedIn", "true");
 
-      toast.success("Login successful!");
+      toast.success("Login successful!",{ autoClose: 250});
       navigate("/home");
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.error || "Login failed");
+      toast.error(err.response?.data?.error || "Login failed",{ autoClose: 250});
     }
   };
 

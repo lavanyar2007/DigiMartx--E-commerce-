@@ -9,9 +9,9 @@ const Admin = ({ products, setProducts }) => {
 
   useEffect(() => {
     const token = sessionStorage.getItem("token");
-    const storedRole = sessionStorage.getItem("role"); // Store role on login
+    const storedRole = sessionStorage.getItem("role");
     if (!token || storedRole !== "admin") {
-      toast.error("Access denied. Admins only!");
+      toast.error("Access denied. Admins only!",{ autoClose: 250});
       navigate("/login");
     } else {
       setRole(storedRole);

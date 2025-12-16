@@ -2,7 +2,7 @@ const mongoose=require("mongoose")
 
 async function connectDb(){
     try{
-        await mongoose.connect("mongodb://127.0.0.1:27017/digimartx");
+        await mongoose.connect(process.env.MONGO_URL);
         console.log("MongoDb connected successfully");
     }
     catch(err){

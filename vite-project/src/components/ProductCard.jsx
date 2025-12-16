@@ -10,6 +10,7 @@ const ProductCard = ({ product, addToCart }) => {
       />
       <h2 className="font-bold text-indigo-900">{product.name}</h2>
       <p className="text-gray-700">₹{product.price}</p>
+
       <div className="flex justify-between mt-3 py-2">
         <button
           onClick={() => addToCart(product)}
@@ -17,6 +18,7 @@ const ProductCard = ({ product, addToCart }) => {
         >
           Add
         </button>
+
         <Link
           to={`/products/${product.id}`}
           className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 transition"

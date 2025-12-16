@@ -43,7 +43,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="border-t border-gray-300 text-center py-4 text-sm">
-        &copy; 2025 DigiMartx. Website by <a href="#" className="hover:text-gray-300 underline">YourName</a>
+        &copy; {new Date().getFullYear()} DigiMartx. Website by <a href="#" className="hover:text-gray-300 underline">YourName</a>
       </div>
     </footer>
   );

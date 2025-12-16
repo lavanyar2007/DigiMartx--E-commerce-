@@ -11,11 +11,10 @@ const {
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
 
-// PUBLIC
+// not authenticated
 router.get("/", getProducts);
 router.get("/:id", getProductsById);
 
-// 🔐 ADMIN ONLY
 router.post("/", authMiddleware, adminMiddleware, postProducts);
 router.delete("/:id", authMiddleware, adminMiddleware, deleteProducts);
 

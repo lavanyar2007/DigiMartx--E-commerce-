@@ -1,4 +1,4 @@
-const Product =require("../models/Product")
+const Product =require("../models/products")
 
 //get all products
 const getProducts =async (req, res) => {

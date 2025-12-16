@@ -18,11 +18,11 @@ const RegistrationForm = () => {
         password,
       });
 
-      toast.success("Registration successful!");
+      toast.success("Registration successful!",{ autoClose: 250});
       navigate("/login");
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.error || "Registration failed");
+      toast.error(err.response?.data?.error || "Registration failed",{ autoClose: 250});
     }
   };
 

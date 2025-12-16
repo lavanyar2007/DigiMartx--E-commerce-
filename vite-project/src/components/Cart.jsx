@@ -1,186 +1,238 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "react-toastify";
 
-const Cart = ({ CartProduct, setCartProduct, orders, setOrders }) => {
+const Cart = ({ CartProduct, setCartProduct }) => {
   const [quantities, setQuantities] = useState([]);
+  const [backendTotal, setBackendTotal] = useState(0);
+
+  const [shippingAddress, setShippingAddress] = useState({
+    fullName: "",
+    phone: "",
+    addressLine: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+  });
+
+  const [paymentMethod] = useState("COD");
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
-  // Fetch cart on mount
+  // ---------------- FETCH CART ----------------
   useEffect(() => {
     const fetchCart = async () => {
+      if (!token) return;
       try {
         const res = await axios.get("http://localhost:3000/carts", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const carts = Array.isArray(res.data.carts) ? res.data.carts : [];
+
+        const carts = res.data.cart
+          ? res.data.cart.products.map((item) => ({
+              id: item.product._id,
+              name: item.product.name,
+              price: item.product.price,
+              image: item.product.image,
+              description: item.product.description,
+              quantity: item.quantity,
+            }))
+          : [];
+
         setCartProduct(carts);
-        setQuantities(carts.map((item) => item.quantity || 1));
-      } catch (err) {
-        console.error("Error fetching cart:", err);
+        setQuantities(carts.map((i) => i.quantity));
+        setBackendTotal(
+          carts.reduce((s, i) => s + i.price * i.quantity, 0)
+        );
+      } catch {
+        toast.error("Failed to load cart",{ autoClose: 300});
       }
     };
     fetchCart();
   }, [token, setCartProduct]);
 
-  // Calculate total safely
-  const totalPrice = () => {
-    if (!Array.isArray(CartProduct)) return 0;
-    return CartProduct.reduce(
-      (sum, item, i) => sum + (item.price || 0) * (quantities[i] || 1),
-      0
-    );
-  };
-
-  const updateQuantity = async (index, newQuantity) => {
-    if (newQuantity < 1) return;
+  // ---------------- UPDATE QTY ----------------
+  const updateQuantity = async (index, qty) => {
+    if (qty < 1) return;
 
     const product = CartProduct[index];
-    try {
-      const res = await axios.put(
-        `http://localhost:3000/carts/${product.id}`,
-        { quantity: newQuantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
 
-      const updatedItem = res.data.cart;
-      const newCart = [...CartProduct];
-      newCart[index] = updatedItem;
-      setCartProduct(newCart);
+    await axios.put(
+      "http://localhost:3000/carts",
+      { productId: product.id, quantity: qty },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const newQuantities = [...quantities];
-      newQuantities[index] = newQuantity;
-      setQuantities(newQuantities);
-    } catch (err) {
-      console.error("Error updating quantity:", err);
-    }
+    const updated = CartProduct.map((p, i) =>
+      i === index ? { ...p, quantity: qty } : p
+    );
+
+    setCartProduct(updated);
+    setQuantities(updated.map((i) => i.quantity));
+    setBackendTotal(updated.reduce((s, i) => s + i.price * i.quantity, 0));
   };
 
-  const increment = (index) => updateQuantity(index, quantities[index] + 1);
-  const decrement = (index) => updateQuantity(index, quantities[index] - 1);
-
+  // ---------------- REMOVE ----------------
   const handleRemove = async (id, index) => {
-    try {
-      await axios.delete(`http://localhost:3000/carts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCartProduct(CartProduct.filter((item) => item.id !== id));
-      setQuantities(quantities.filter((_, i) => i !== index));
-    } catch (err) {
-      console.error("Error removing item:", err);
-    }
+    await axios.delete(`http://localhost:3000/carts/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const updated = CartProduct.filter((_, i) => i !== index);
+    setCartProduct(updated);
+    setQuantities(updated.map((i) => i.quantity));
+    setBackendTotal(updated.reduce((s, i) => s + i.price * i.quantity, 0));
   };
 
-  const handleCheckout = async () => {
-    if (!Array.isArray(CartProduct) || CartProduct.length === 0) return;
+  // ---------------- CHECKOUT ----------------
+ const handleCheckout = async () => {
+  try {
+    // 1️⃣ Validate address on frontend
+    const requiredFields = [
+      "fullName",
+      "phone",
+      "addressLine",
+      "city",
+      "state",
+      "pincode",
+    ];
 
-    const orderData = {
-      items: CartProduct.map((item, i) => ({
-        id: item.id, // Ensure this exists
-        name: item.name,
-        price: item.price,
-        quantity: quantities[i],
-        total: item.price * quantities[i],
-        image: item.image || ""
-      })),
-      totalAmount: totalPrice(),
-      date: new Date().toISOString(),
-    };
-
-    try {
-      const res = await axios.post("http://localhost:3000/orders", orderData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const newOrder = res.data.order;
-      setOrders(Array.isArray(orders) ? [...orders, newOrder] : [newOrder]);
-      setCartProduct([]);
-      alert("Order placed successfully!");
-      navigate("/order");
-    } catch (err) {
-      console.error("Checkout error:", err);
+    for (let field of requiredFields) {
+      if (!shippingAddress[field]) {
+        toast.error(`Please fill ${field}`,{ autoClose: 250});
+        return;
+      }
     }
-  };
+
+    // 2️⃣ Place order
+    const res = await axios.post(
+      "http://localhost:3000/orders",
+      {
+        shippingAddress,
+        paymentMethod,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+
+    setCartProduct([]);
+    setQuantities([]);
+    setBackendTotal(0);
+
+    toast.success("Order placed successfully",{ autoClose: 250});
+    navigate("/order");
+  } catch (error) {
+    console.error("Checkout failed:", error.response?.data || error.message);
+
+    toast.error(
+      error.response?.data?.message || "Checkout failed. Try again",{ autoClose: 250}
+    );
+  }
+};
+
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-indigo-900 text-center">Cart</h1>
-      <div className="flex gap-15 justify-center">
-        <div className="w-full md:w-2/3 bg-indigo-100 p-5 rounded-xl shadow-lg">
-          {!Array.isArray(CartProduct) || CartProduct.length === 0 ? (
-            <p className="text-center text-indigo-700 mt-4 text-lg font-semibold">
-              Your cart is empty.
+    <div className="max-w-6xl mx-auto p-6">
+      <h1 className="text-2xl font-bold text-indigo-900 text-center mb-6">
+        Cart
+      </h1>
+
+      <div className="flex gap-10">
+        {/* CART ITEMS */}
+        <div className="w-2/3 bg-indigo-100 p-6 rounded-2xl shadow-lg">
+          {CartProduct.length === 0 && (
+            <p className="text-center font-semibold text-indigo-700">
+              Your cart is empty
             </p>
-          ) : (
-            CartProduct.map((product, i) => (
-              <div
-                key={product.id}
-                className="flex gap-5 items-center bg-white p-4 rounded-xl shadow mb-4"
-              >
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-24 h-24 object-cover rounded-md"
-                />
-                <div className="flex-1">
-                  <h2 className="font-bold text-indigo-900">{product.name}</h2>
-                  <p className="text-gray-700">{product.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => decrement(i)}
-                    className="border-2 rounded-full px-3 py-1 hover:bg-indigo-300 transition"
-                  >
-                    -
-                  </button>
-                  <span className="font-semibold">{quantities[i]}</span>
-                  <button
-                    onClick={() => increment(i)}
-                    className="border-2 rounded-full px-3 py-1 hover:bg-indigo-300 transition"
-                  >
-                    +
-                  </button>
-                </div>
-                <p className="font-bold">₹{product.price * quantities[i]}</p>
+          )}
+
+          {CartProduct.map((p, i) => (
+            <div
+              key={p.id}
+              className="flex gap-4 items-center bg-white p-4 rounded-xl shadow mb-4"
+            >
+              <img
+                src={p.image}
+                className="w-24 h-24 object-cover rounded-md"
+              />
+
+              <div className="flex-1">
+                <h2 className="font-bold text-indigo-900">{p.name}</h2>
+                <p className="text-gray-600">{p.description}</p>
+                <p className="font-bold mt-1">
+                  ₹{p.price * quantities[i]}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleRemove(product.id, i)}
-                  className="bg-red-500 px-3 py-1 rounded hover:bg-red-600 text-white transition"
+                  onClick={() => updateQuantity(i, quantities[i] - 1)}
+                  className="h-8 w-8 border rounded-full"
                 >
-                  Remove
+                  -
+                </button>
+                <span className="font-semibold">{quantities[i]}</span>
+                <button
+                  onClick={() => updateQuantity(i, quantities[i] + 1)}
+                  className="h-8 w-8 border rounded-full"
+                >
+                  +
                 </button>
               </div>
-            ))
+
+              <button
+                onClick={() => handleRemove(p.id, i)}
+                className="bg-red-500 text-white px-3 py-1 rounded"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          {/* ADDRESS */}
+          {CartProduct.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {Object.keys(shippingAddress).map(
+                (key) =>
+                  key !== "country" && (
+                    <input
+                      key={key}
+                      placeholder={key}
+                      value={shippingAddress[key]}
+                      onChange={(e) =>
+                        setShippingAddress({
+                          ...shippingAddress,
+                          [key]: e.target.value,
+                        })
+                      }
+                      className="w-full border p-2 rounded-lg"
+                    />
+                  )
+              )}
+            </div>
           )}
         </div>
 
-        <div className="w-full md:w-1/3 bg-indigo-100 p-5 rounded-xl shadow-lg h-fit">
-          <h2 className="text-xl font-bold text-indigo-900 text-center mb-4">
+        {/* SUMMARY */}
+        <div className="w-1/3 bg-indigo-100 p-6 rounded-2xl shadow-lg h-fit">
+          <h2 className="text-xl font-bold text-center mb-4">
             Order Summary
           </h2>
-          <div className="flex justify-between mb-2">
-            <span>Subtotal:</span>
-            <span>₹{totalPrice().toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span>Discount (20%):</span>
-            <span>₹{(totalPrice() * 0.2).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span>Shipping:</span>
-            <span>₹{(totalPrice() * 0.1).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between font-bold text-indigo-900 text-lg mb-4">
+
+          <div className="flex justify-between font-semibold">
             <span>Total:</span>
-            <span>₹{(totalPrice() - totalPrice() * 0.2 + totalPrice() * 0.1).toFixed(2)}</span>
+            <span>₹{backendTotal}</span>
           </div>
+
           <button
             onClick={handleCheckout}
-            disabled={!Array.isArray(CartProduct) || CartProduct.length === 0}
-            className={`w-full py-2 rounded transition ${
-              !Array.isArray(CartProduct) || CartProduct.length === 0
-                ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                : "bg-indigo-900 text-white hover:bg-indigo-800"
-            }`}
+            className="w-full mt-6 bg-indigo-900 text-white py-2 rounded-lg"
           >
             Checkout
           </button>

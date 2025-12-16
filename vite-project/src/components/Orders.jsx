@@ -1,93 +1,139 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { toast } from "react-toastify";
 
-const Orders = ({ orders, setOrders }) => {
+const Orders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
+  // ---------------- FETCH ORDERS ----------------
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const res = await axios.get("http://localhost:3000/orders", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
+
         setOrders(res.data.orders || []);
-      } catch (err) {
-        console.error("Error fetching orders:", err);
+      } catch (error) {
+        console.error("Fetch orders failed:", error.response?.data);
+        toast.error("Failed to load orders",{ autoClose: 250});
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchOrders();
-  }, [setOrders, token]);
+  }, [token]);
 
+  // ---------------- LOADING STATE ----------------
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto mt-20 text-center text-lg font-semibold text-gray-600">
+        Loading orders...
+      </div>
+    );
+  }
+
+  // ---------------- EMPTY STATE ----------------
+  if (!orders.length) {
+    return (
+      <div className="max-w-4xl mx-auto p-10 mt-20 text-center bg-indigo-50 rounded-2xl shadow-lg">
+        <p className="text-xl font-bold text-indigo-800">
+          You haven’t placed any orders yet
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="mt-6 bg-indigo-900 text-white px-6 py-2 rounded-xl hover:bg-indigo-800 transition"
+        >
+          Continue Shopping
+        </button>
+      </div>
+    );
+  }
+
+  // ---------------- ORDERS LIST ----------------
   return (
-    <div className="max-w-4xl mx-auto p-6 mt-10">
-      <h1 className="text-3xl font-extrabold mb-8 text-indigo-900 text-center tracking-wide">
-        Your Previous Orders
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-3xl font-bold text-center mb-10">
+        Your Orders
       </h1>
 
-      {!Array.isArray(orders) || orders.length === 0 ? (
-        <div className="border-2 border-indigo-200 rounded-2xl p-8 bg-indigo-50 shadow-md text-center text-indigo-800 font-semibold text-lg">
-          No orders yet.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="border-2 border-indigo-300 p-6 rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-shadow duration-300"
-            >
-              <h2 className="font-bold text-indigo-900 text-xl mb-3">
-                Order ID: {order.id}
-              </h2>
-
-              <p className="text-indigo-700 mb-4 italic">
-                Date: {new Date(order.date).toLocaleString()}
-              </p>
-
-              <div className="space-y-4">
-                {order.items.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex gap-4 items-center border border-indigo-200 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors duration-200"
-                  >
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-20 w-20 object-cover rounded-md border border-indigo-300"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-indigo-900 text-lg">
-                        {item.name}
-                      </h3>
-                      <p className="text-indigo-700">Qty: {item.quantity}</p>
-                      <p className="font-bold text-indigo-800 mt-1">
-                        ₹{item.total}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        navigate(`/products/${item.id}`, { state: item })
-                      }
-                      className="bg-indigo-900 text-white font-semibold py-1 px-3 rounded hover:bg-indigo-800 transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                ))}
+      <div className="space-y-8">
+        {orders.map((order) => (
+          <div
+            key={order._id}
+            className="bg-white rounded-2xl shadow-lg p-6 border"
+          >
+            {/* Order Header */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+              <div>
+                <p className="font-bold text-lg">
+                  Order #{order._id.slice(-6)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {new Date(order.createdAt).toLocaleString()}
+                </p>
               </div>
 
-              <div className="flex justify-between mt-6 font-bold text-indigo-900 text-lg border-t border-indigo-200 pt-3">
-                <span>Total Amount:</span>
-                <span>₹{order.totalAmount}</span>
-              </div>
+              <span className="px-4 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-900 w-fit">
+                {order.deliveryStatus}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Products */}
+            <div className="mt-6 space-y-4">
+              {order.products.map((item) => (
+                <div
+                  key={item.product._id}
+                  className="flex flex-col sm:flex-row gap-4 items-center border rounded-xl p-4"
+                >
+                  <img
+                    src={item.product.image}
+                    alt={item.product.name}
+                    className="w-24 h-24 object-cover rounded-lg"
+                  />
+
+                  <div className="flex-1 w-full">
+                    <p className="font-semibold text-lg">
+                      {item.product.name}
+                    </p>
+                    <p className="text-gray-600">
+                      Qty: {item.quantity}
+                    </p>
+                    <p className="font-bold text-indigo-900">
+                      ₹{item.product.price * item.quantity}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/products/${item.product.id}`)
+                    }
+                    className="bg-indigo-900 text-white px-4 py-2 rounded-xl hover:bg-indigo-800 transition"
+                  >
+                    View Product
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Order Footer */}
+            <div className="flex justify-between items-center mt-6 border-t pt-4 text-lg font-bold">
+              <span>Total Amount</span>
+              <span className="text-indigo-900">
+                ₹{order.totalAmount}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

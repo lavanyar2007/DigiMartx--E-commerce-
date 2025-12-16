@@ -14,7 +14,7 @@ const ProductForm = ({ products, setProducts }) => {
     e.preventDefault();
 
     if (!productName || !productPrice) {
-      toast.error("Name and price are required");
+      toast.error("Name and price are required",{ autoClose: 300});
       return;
     }
 
@@ -30,10 +30,10 @@ const ProductForm = ({ products, setProducts }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const newProduct = res.data.product; // use returned product object
+      const newProduct = res.data.product;
       setProducts([...products, newProduct]);
 
-      toast.success("Product added successfully!", { autoClose: 500 });
+      toast.success("Product added successfully!", { autoClose: 250});
 
       // Clear form
       setProductName("");

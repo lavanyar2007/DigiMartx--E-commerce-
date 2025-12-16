@@ -20,88 +20,73 @@ import LoginForm from "./components/LoginForm.jsx";
 import RegistrationForm from "./components/RegistrationForm.jsx";
 
 const Main = () => {
-  const token = sessionStorage.getItem("token"); // JWT token
+  const token = sessionStorage.getItem("token");
 
   // ---- Products ----
   const [products, setProducts] = useState([]);
+
+  const [CartProduct, setCartProduct] = useState([]); // Cart state added
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await axios.get("http://localhost:3000/products");
-        setProducts(res.data);
+        setProducts(res.data.products || res.data);
       } catch (err) {
         console.error("Failed to fetch products:", err);
+        toast.error("Failed to load products",{ autoClose: 250});
       }
     };
     fetchProducts();
   }, []);
 
-  // ---- Cart ----
-  const [CartProduct, setCartProduct] = useState([]);
-  useEffect(() => {
-    const fetchCart = async () => {
-      if (!token) return;
-      try {
-        const res = await axios.get("http://localhost:3000/carts", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCartProduct(res.data);
-      } catch (err) {
-        console.error("Failed to fetch cart:", err);
-      }
-    };
-    fetchCart();
-  }, [token]);
+  // // ---- Orders (fetch once, for current user) ----
+  // useEffect(() => {
+  //   if (!token) return;
+  //   const fetchOrders = async () => {
+  //     try {
+  //       const res = await axios.get("http://localhost:3000/orders", {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+  //       setOrders(res.data.orders || []);
+  //     } catch (err) {
+  //       console.error("Failed to fetch orders:", err);
+  //     }
+  //   };
+  //   fetchOrders();
+  // }, [token]);
 
-  const addToCart = async (product) => {
-    if (!token) {
-      toast.error("Please login first");
-      return;
-    }
-    try {
-      const { data } = await axios.post(
-        "http://localhost:3000/carts",
-        { ...product },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCartProduct((prev) => [...prev, data.cart]);
-      toast.success("Item added to cart!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add item to cart");
-    }
-  };
+  // ---- Add to Cart (for products only) ----
+const addToCart = async (product) => {
+  if (!token) {
+    toast.error("Please login first");
+    return;
+  }
 
-  const removeFromCart = async (id) => {
-    if (!token) return;
-    try {
-      await axios.delete(`http://localhost:3000/carts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCartProduct((prev) => prev.filter((item) => item.id !== id));
-      toast.success("Item removed from cart");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to remove item from cart");
-    }
-  };
+  try {
+    const res = await axios.post(
+      "http://localhost:3000/carts",
+      { productId: product._id, quantity: 1 },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-  // ---- Orders ----
-  const [orders, setOrders] = useState([]);
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!token) return;
-      try {
-        const res = await axios.get("http://localhost:3000/orders", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setOrders(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchOrders();
-  }, [token]);
+    // Get updated cart from backend
+    const updatedCart = res.data.cart.products.map(item => ({
+      id: item.product._id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      image: item.product.image,
+    }));
+
+    setCartProduct(updatedCart); // update frontend instantly
+    toast.success("Product added to cart",{ autoClose: 250});
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add product to cart",{ autoClose: 250});
+  }
+};
+
 
   return (
     <>
@@ -109,27 +94,20 @@ const Main = () => {
       <BrowserRouter>
         <Routes>
           <Route element={<HomeLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/" element={<Home products={products} />} />
+            <Route path="/home" element={<Home products={products} />} />
+
+            {/* Product Routes */}
             <Route
               path="/product"
-              element={
-                <ProductList
-                  products={products}
-                  addToCart={addToCart}
-                  setCartProduct={setCartProduct}
-                />
-              }
+              element={<ProductList products={products} addToCart={addToCart} />}
             />
             <Route
               path="/products/:id"
-              element={
-                <ProductDetails
-                  products={products}
-                  addToCart={addToCart}
-                />
-              }
+              element={<ProductDetails products={products} addToCart={addToCart} />}
             />
+
+            {/* Cart */}
             <Route
               path="/cart"
               element={
@@ -137,14 +115,25 @@ const Main = () => {
                   <Cart
                     CartProduct={CartProduct}
                     setCartProduct={setCartProduct}
-                    removeFromCart={removeFromCart}
-                    orders={orders}
-                    setOrders={setOrders}
                   />
                 </ProtectedRoute>
               }
             />
+
+            {/* Orders */}
+            <Route
+              path="/order"
+              element={
+                <ProtectedRoute>
+                  <Orders />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* About */}
             <Route path="/about" element={<About />} />
+
+            {/* Admin */}
             <Route
               path="/admin"
               element={
@@ -158,15 +147,6 @@ const Main = () => {
           {/* Public Routes */}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegistrationForm />} />
-
-          <Route
-            path="/order"
-            element={
-              <ProtectedRoute>
-                <Orders orders={orders} setOrders={setOrders} />
-              </ProtectedRoute>
-            }
-          />
         </Routes>
       </BrowserRouter>
     </>
